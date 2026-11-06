@@ -7,6 +7,8 @@ use Illuminate\Support\Facades\Schema;
 
 class UserSetting extends Model
 {
+    private const CACHE_PREFIX = 'helpdesk.user_settings.';
+
     protected $fillable = [
         'user_id',
         'key',
@@ -20,16 +22,32 @@ class UserSetting extends Model
 
     public static function getForUser(int $userId, string $key, mixed $default = null): mixed
     {
-        if (!static::tableIsAvailable()) {
-            return $default;
+        $all = static::allValuesForUser($userId);
+
+        return $all === null ? $default : ($all[$key] ?? $default);
+    }
+
+    /**
+     * Préférences d'un utilisateur, lues en une requête et gardées pour la
+     * requête HTTP en cours (voir Setting::allValues()).
+     */
+    protected static function allValuesForUser(int $userId): ?array
+    {
+        $app = app();
+        $cacheKey = self::CACHE_PREFIX.$userId;
+
+        if ($app->bound($cacheKey)) {
+            return $app->make($cacheKey);
         }
 
-        $setting = static::query()
-            ->where('user_id', $userId)
-            ->where('key', $key)
-            ->first();
+        if (!static::tableIsAvailable()) {
+            return null;
+        }
 
-        return $setting?->value ?? $default;
+        $values = static::query()->where('user_id', $userId)->pluck('value', 'key')->all();
+        $app->instance($cacheKey, $values);
+
+        return $values;
     }
 
     public static function setForUser(int $userId, string $key, mixed $value): void
@@ -47,6 +65,7 @@ class UserSetting extends Model
                 'value' => is_bool($value) ? ($value ? '1' : '0') : (string) $value,
             ]
         );
+        app()->forgetInstance(self::CACHE_PREFIX.$userId);
     }
 
     public static function getBoolForUser(int $userId, string $key, bool $default = false): bool
