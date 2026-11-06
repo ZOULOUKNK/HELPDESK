@@ -72,6 +72,23 @@ Mot de passe de tous les comptes : `password`. **À changer avant toute mise en 
 | `php artisan migrate:fresh --seed` | Recrée la base avec les données de démonstration (**efface tout**) |
 | `php artisan tickets:clear` | Supprime tous les tickets, réponses et historiques |
 
+## Sécurité
+
+- Un client ne voit que ses propres tickets et leurs pièces jointes.
+- Les pièces jointes sont stockées dans `storage/app/private` et servies par l'application après contrôle d'accès ; celles des notes internes sont réservées au support.
+- Seul un super-administrateur peut gérer un compte super-administrateur. Personne ne peut changer son propre rôle ni désactiver son propre compte.
+- Connexion et inscription limitées à 5 tentatives par minute.
+
 ## Tests
 
-`tests/Feature` couvre la connexion (redirections, identifiants erronés, compte désactivé), l'installation de la base (migrations, clés étrangères, données de démonstration) et le démarrage sans base de données.
+```powershell
+php artisan test
+```
+
+`tests/Feature` couvre :
+
+- la connexion (redirections, identifiants erronés, compte désactivé, limitation des tentatives) ;
+- l'accès aux tickets et aux pièces jointes selon le rôle ;
+- la gestion des comptes par les administrateurs ;
+- l'installation de la base (migrations, clés étrangères, données de démonstration) et le démarrage sans base ;
+- le nombre de requêtes du tableau de bord.
