@@ -3,7 +3,7 @@
 namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use App\Models\Ticket;
 use App\Models\TicketReply;
 use App\Models\TicketHistory;
@@ -15,13 +15,13 @@ class ClearTickets extends Command
 
     public function handle()
     {
-        DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+        Schema::disableForeignKeyConstraints();
 
         TicketHistory::truncate();
         TicketReply::truncate();
         Ticket::truncate();
 
-        DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+        Schema::enableForeignKeyConstraints();
 
         $this->info('Tous les tickets ont été supprimés.');
     }

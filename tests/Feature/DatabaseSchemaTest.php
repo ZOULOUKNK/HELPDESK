@@ -46,6 +46,15 @@ class DatabaseSchemaTest extends TestCase
         }
     }
 
+    public function test_demo_data_can_be_seeded(): void
+    {
+        // TicketSeeder utilisait « SET FOREIGN_KEY_CHECKS », propre à MySQL.
+        $this->seed();
+
+        $this->assertDatabaseHas('users', ['email' => 'superadmin@helpdesk.fr']);
+        $this->assertGreaterThan(0, Ticket::count());
+    }
+
     public function test_customer_profiles_has_its_columns(): void
     {
         $this->assertTrue(Schema::hasColumns('customer_profiles', [
