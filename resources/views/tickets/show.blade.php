@@ -115,7 +115,7 @@
                             <div class="mt-3 flex flex-wrap gap-2">
                                 @foreach($originalAttachments as $attachment)
                                     <a
-                                        href="{{ Storage::url($attachment->path) }}"
+                                        href="{{ route('attachments.download', $attachment) }}"
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         class="flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 rounded-lg text-xs text-slate-700 transition-colors"
@@ -178,7 +178,7 @@
                                 <div class="mt-3 flex flex-wrap gap-2">
                                     @foreach($reply->attachments as $attachment)
                                         <a
-                                            href="{{ Storage::url($attachment->path) }}"
+                                            href="{{ route('attachments.download', $attachment) }}"
                                             target="_blank"
                                             rel="noopener noreferrer"
                                             class="flex items-center gap-1.5 px-2.5 py-1.5 bg-white border border-slate-200 hover:border-slate-300 rounded-lg text-xs text-slate-700 transition-colors"

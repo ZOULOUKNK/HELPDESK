@@ -362,7 +362,8 @@ class TicketController extends Controller
 
     private function storeAttachment($file, Ticket $ticket, ?int $replyId): void
     {
-        $path = $file->store("attachments/ticket-{$ticket->id}", 'public');
+        // Disque privé : servi uniquement par AttachmentController, après contrôle d'accès.
+        $path = $file->store("attachments/ticket-{$ticket->id}", 'local');
 
         Attachment::create([
             'ticket_id'       => $ticket->id,
