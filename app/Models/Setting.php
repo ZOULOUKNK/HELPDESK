@@ -14,7 +14,7 @@ class Setting extends Model
 
     public static function get(string $key, mixed $default = null): mixed
     {
-        if (!Schema::hasTable('settings')) {
+        if (!static::tableIsAvailable()) {
             return $default;
         }
 
@@ -27,7 +27,7 @@ class Setting extends Model
 
     public static function set(string $key, mixed $value): void
     {
-        if (!Schema::hasTable('settings')) {
+        if (!static::tableIsAvailable()) {
             return;
         }
 
@@ -45,5 +45,19 @@ class Setting extends Model
     public static function getInt(string $key, int $default = 0): int
     {
         return (int) static::get($key, $default);
+    }
+
+    /**
+     * Indique si la table est utilisable. Renvoie false au lieu de planter
+     * quand la base n'existe pas encore (composer install, premier
+     * lancement avant « php artisan migrate »).
+     */
+    protected static function tableIsAvailable(): bool
+    {
+        try {
+            return Schema::hasTable('settings');
+        } catch (\Throwable) {
+            return false;
+        }
     }
 }

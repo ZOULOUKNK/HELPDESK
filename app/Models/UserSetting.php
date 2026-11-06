@@ -20,7 +20,7 @@ class UserSetting extends Model
 
     public static function getForUser(int $userId, string $key, mixed $default = null): mixed
     {
-        if (!Schema::hasTable('user_settings')) {
+        if (!static::tableIsAvailable()) {
             return $default;
         }
 
@@ -34,7 +34,7 @@ class UserSetting extends Model
 
     public static function setForUser(int $userId, string $key, mixed $value): void
     {
-        if (!Schema::hasTable('user_settings')) {
+        if (!static::tableIsAvailable()) {
             return;
         }
 
@@ -52,5 +52,19 @@ class UserSetting extends Model
     public static function getBoolForUser(int $userId, string $key, bool $default = false): bool
     {
         return filter_var(static::getForUser($userId, $key, $default ? '1' : '0'), FILTER_VALIDATE_BOOLEAN);
+    }
+
+    /**
+     * Indique si la table est utilisable. Renvoie false au lieu de planter
+     * quand la base n'existe pas encore (composer install, premier
+     * lancement avant « php artisan migrate »).
+     */
+    protected static function tableIsAvailable(): bool
+    {
+        try {
+            return Schema::hasTable('user_settings');
+        } catch (\Throwable) {
+            return false;
+        }
     }
 }
