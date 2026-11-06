@@ -55,6 +55,14 @@ class DatabaseSchemaTest extends TestCase
         $this->assertGreaterThan(0, Ticket::count());
     }
 
+    public function test_standard_laravel_tables_exist(): void
+    {
+        // .env.example utilise SESSION_DRIVER=database : sans cette table,
+        // toutes les pages renvoyaient une erreur 500.
+        $this->assertTrue(Schema::hasTable('sessions'));
+        $this->assertTrue(Schema::hasTable('password_reset_tokens'));
+    }
+
     public function test_customer_profiles_has_its_columns(): void
     {
         $this->assertTrue(Schema::hasColumns('customer_profiles', [
