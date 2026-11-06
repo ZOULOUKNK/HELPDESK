@@ -13,6 +13,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 
 class TicketController extends Controller
 {
@@ -253,8 +254,14 @@ class TicketController extends Controller
             abort(403);
         }
 
+        // Seul un membre du support actif peut recevoir un ticket.
         $request->validate([
-            'assigned_to' => 'nullable|exists:users,id',
+            'assigned_to' => [
+                'nullable',
+                Rule::exists('users', 'id')
+                    ->whereIn('role', [User::ROLE_AGENT, User::ROLE_ADMIN, User::ROLE_SUPER_ADMIN])
+                    ->where('is_active', true),
+            ],
         ]);
 
         $old = $ticket->assigned_to;
