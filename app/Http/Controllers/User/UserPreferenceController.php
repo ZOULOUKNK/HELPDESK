@@ -3,55 +3,120 @@
 namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
+use App\Models\Setting;
+use App\Models\User;
 use App\Models\UserSetting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 
+/*
+|--------------------------------------------------------------------------
+| Page « Mon compte »
+|--------------------------------------------------------------------------
+| Chaque utilisateur, quel que soit son rôle, gère ici son profil, son mot
+| de passe et ses préférences d'affichage. Seules les préférences
+| réellement appliquées par l'application sont proposées.
+*/
 class UserPreferenceController extends Controller
 {
+    /** Fuseaux proposés (les mêmes que dans les réglages globaux). */
+    public const TIMEZONES = [
+        'Indian/Antananarivo' => 'Madagascar (Antananarivo)',
+        'Europe/Paris' => 'France (Paris)',
+        'UTC' => 'UTC',
+        'Europe/London' => 'Royaume-Uni (Londres)',
+        'America/New_York' => 'États-Unis (New York)',
+    ];
+
+    /** Pages d'accueil possibles après connexion. */
+    public const HOME_PAGES = [
+        'dashboard' => 'Tableau de bord',
+        'tickets.index' => 'Liste des tickets',
+    ];
+
     public function edit()
     {
         $user = Auth::user();
 
         $settings = [
-            'locale' => UserSetting::getForUser($user->id, 'locale', 'fr'),
-            'timezone' => UserSetting::getForUser($user->id, 'timezone', 'Europe/Paris'),
-            'date_format' => UserSetting::getForUser($user->id, 'date_format', 'd/m/Y'),
-            'theme' => UserSetting::getForUser($user->id, 'theme', 'light'),
-            'accent_color' => UserSetting::getForUser($user->id, 'accent_color', '#334155'),
-            'compact_mode' => UserSetting::getForUser($user->id, 'compact_mode', '0'),
-            'tickets_per_page' => UserSetting::getForUser($user->id, 'tickets_per_page', '15'),
-            'home_page' => UserSetting::getForUser($user->id, 'home_page', 'dashboard'),
+            'timezone' => UserSetting::getForUser($user->id, 'timezone', Setting::get('app.timezone', 'Europe/Paris')),
+            'accent_color' => UserSetting::getForUser($user->id, 'accent_color', Setting::get('ui.color_primary', '#334155')),
+            'tickets_per_page' => UserSetting::getForUser($user->id, 'tickets_per_page', Setting::get('ticket.per_page', '15')),
+            'home_page' => self::homeRouteFor($user),
         ];
 
-        return view('user.preferences.edit', compact('settings'));
+        return view('user.preferences.edit', [
+            'user' => $user,
+            'settings' => $settings,
+            'timezones' => self::TIMEZONES,
+            'homePages' => self::HOME_PAGES,
+        ]);
     }
 
     public function update(Request $request)
     {
         $validated = $request->validate([
-            'locale' => ['required', Rule::in(['fr', 'en'])],
-            'timezone' => ['required', 'string', 'max:100'],
-            'date_format' => ['required', 'string', 'max:50'],
-            'theme' => ['required', Rule::in(['light', 'dark'])],
+            'timezone' => ['required', Rule::in(array_keys(self::TIMEZONES))],
             'accent_color' => ['required', 'regex:/^#[A-Fa-f0-9]{6}$/'],
-            'compact_mode' => ['nullable', 'boolean'],
             'tickets_per_page' => ['required', 'integer', 'min:5', 'max:100'],
-            'home_page' => ['required', Rule::in(['dashboard', 'tickets.index'])],
+            'home_page' => ['required', Rule::in(array_keys(self::HOME_PAGES))],
         ]);
 
-        $userId = Auth::id();
+        foreach ($validated as $key => $value) {
+            UserSetting::setForUser(Auth::id(), $key, $value);
+        }
 
-        UserSetting::setForUser($userId, 'locale', $validated['locale']);
-        UserSetting::setForUser($userId, 'timezone', $validated['timezone']);
-        UserSetting::setForUser($userId, 'date_format', $validated['date_format']);
-        UserSetting::setForUser($userId, 'theme', $validated['theme']);
-        UserSetting::setForUser($userId, 'accent_color', $validated['accent_color']);
-        UserSetting::setForUser($userId, 'compact_mode', $request->boolean('compact_mode'));
-        UserSetting::setForUser($userId, 'tickets_per_page', $validated['tickets_per_page']);
-        UserSetting::setForUser($userId, 'home_page', $validated['home_page']);
+        return back()->with('success', 'Préférences enregistrées.');
+    }
 
-        return back()->with('success', 'Préférences utilisateur enregistrées.');
+    public function updateProfile(Request $request)
+    {
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'phone' => ['nullable', 'string', 'max:20'],
+            'bio' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        // Rôle, e-mail et statut restent gérés par l'administration.
+        Auth::user()->update($validated);
+
+        return back()->with('success', 'Profil mis à jour.');
+    }
+
+    public function updatePassword(Request $request)
+    {
+        $request->validate([
+            'current_password' => ['required', 'current_password'],
+            'password' => ['required', 'confirmed', 'min:8', 'different:current_password'],
+        ], [
+            'current_password.current_password' => 'Le mot de passe actuel est incorrect.',
+            'password.different' => 'Le nouveau mot de passe doit être différent de l\'actuel.',
+            'password.confirmed' => 'La confirmation ne correspond pas.',
+            'password.min' => 'Le mot de passe doit contenir au moins 8 caractères.',
+        ]);
+
+        Auth::user()->update(['password' => Hash::make($request->password)]);
+
+        // Les autres sessions ouvertes avec l'ancien mot de passe sont fermées.
+        Auth::logoutOtherDevices($request->password);
+
+        return back()->with('success', 'Mot de passe modifié.');
+    }
+
+    /**
+     * Route de la page d'accueil choisie par l'utilisateur (après
+     * connexion et sur « / »).
+     */
+    public static function homeRouteFor(?User $user): string
+    {
+        if (!$user) {
+            return 'dashboard';
+        }
+
+        $home = UserSetting::getForUser($user->id, 'home_page', 'dashboard');
+
+        return array_key_exists($home, self::HOME_PAGES) ? $home : 'dashboard';
     }
 }

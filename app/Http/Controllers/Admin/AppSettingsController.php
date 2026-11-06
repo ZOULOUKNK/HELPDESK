@@ -25,6 +25,7 @@ class AppSettingsController extends Controller
         ];
 
         $availableTimezones = [
+            'Indian/Antananarivo' => 'Indian/Antananarivo (Madagascar)',
             'Europe/Paris' => 'Europe/Paris',
             'UTC' => 'UTC',
             'Europe/London' => 'Europe/London',
@@ -124,6 +125,7 @@ class AppSettingsController extends Controller
                 'l d F Y',
             ])],
             'app_timezone' => ['required', Rule::in([
+                'Indian/Antananarivo',
                 'Europe/Paris',
                 'UTC',
                 'Europe/London',

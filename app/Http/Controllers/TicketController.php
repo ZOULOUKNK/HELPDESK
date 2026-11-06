@@ -10,6 +10,7 @@ use App\Models\Ticket;
 use App\Models\TicketHistory;
 use App\Models\TicketReply;
 use App\Models\User;
+use App\Models\UserSetting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -20,7 +21,12 @@ class TicketController extends Controller
     public function index(Request $request)
     {
         $user = Auth::user();
-        $perPage = (int) Setting::get('ticket.per_page', 15);
+        // Préférence personnelle (Mon compte), sinon réglage global.
+        $perPage = max(5, min(100, (int) UserSetting::getForUser(
+            $user->id,
+            'tickets_per_page',
+            Setting::get('ticket.per_page', 15)
+        )));
 
         $query = Ticket::with(['user', 'agent', 'tags']);
 

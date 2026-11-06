@@ -7,9 +7,10 @@ use App\Http\Controllers\AttachmentController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\TicketController;
+use App\Http\Controllers\User\UserPreferenceController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', fn () => redirect()->route('dashboard'));
+Route::get('/', fn () => redirect()->route(UserPreferenceController::homeRouteFor(auth()->user())));
 
 Route::get('/deconnexion', fn () => view('auth.logout'))->name('logout.page');
 
@@ -26,11 +27,22 @@ Route::post('/logout', [AuthController::class, 'logout'])
     ->middleware('auth')
     ->name('logout');
 
-Route::middleware('auth')->group(function () {
+// auth.session : un changement de mot de passe ferme les autres sessions.
+Route::middleware(['auth', 'auth.session'])->group(function () {
 
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     Route::get('/attachments/{attachment}', [AttachmentController::class, 'download'])->name('attachments.download');
+
+    // Mon compte : profil, mot de passe, préférences (tous les rôles)
+    Route::prefix('mon-compte')->name('preferences.')->group(function () {
+        Route::get('/', [UserPreferenceController::class, 'edit'])->name('edit');
+        Route::put('/', [UserPreferenceController::class, 'update'])->name('update');
+        Route::put('/profil', [UserPreferenceController::class, 'updateProfile'])->name('profile');
+        Route::put('/mot-de-passe', [UserPreferenceController::class, 'updatePassword'])
+            ->middleware('throttle:5,1')
+            ->name('password');
+    });
 
     /*
     |--------------------------------------------------------------------------

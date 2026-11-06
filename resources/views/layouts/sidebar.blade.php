@@ -181,18 +181,21 @@
 
     <div class="p-3 flex-shrink-0">
         <div class="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-slate-100 transition-colors">
-            <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 {{ $currentUserAvatarClass }}">
-                {{ $currentUser->initials }}
-            </div>
+            {{-- Nom cliquable : page « Mon compte » (profil, mot de passe, préférences) --}}
+            <a href="{{ route('preferences.edit') }}" title="Mon compte" class="flex items-center gap-3 min-w-0 flex-1">
+                <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 {{ $currentUserAvatarClass }}">
+                    {{ $currentUser->initials }}
+                </div>
 
-            <div class="min-w-0 flex-1">
-                <p class="text-sm font-semibold text-slate-900 truncate leading-none">
-                    {{ $currentUser->name }}
-                </p>
-                <p class="text-xs mt-0.5 font-medium {{ $currentUserRoleTextClass }}">
-                    {{ $currentUserRoleLabel }}
-                </p>
-            </div>
+                <div class="min-w-0 flex-1">
+                    <p class="text-sm font-semibold text-slate-900 truncate leading-none">
+                        {{ $currentUser->name }}
+                    </p>
+                    <p class="text-xs mt-0.5 font-medium {{ $currentUserRoleTextClass }}">
+                        {{ $currentUserRoleLabel }} · Mon compte
+                    </p>
+                </div>
+            </a>
 
             <form method="POST" action="{{ route('logout') }}">
                 @csrf

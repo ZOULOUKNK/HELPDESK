@@ -240,6 +240,10 @@
                                 <span>Mes tickets</span>
                             </a>
 
+                            <a href="{{ route('preferences.edit') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">
+                                <span>Mon compte</span>
+                            </a>
+
                             <form method="POST" action="{{ route('logout') }}">
                                 @csrf
                                 <button class="flex items-center gap-2 w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50">

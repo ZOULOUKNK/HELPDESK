@@ -11,7 +11,8 @@ Les clients ouvrent des tickets, les agents les prennent en charge et y réponde
 - Tickets : création, réponses, statut, priorité, assignation à un agent, historique, évaluation de satisfaction
 - Tableau de bord et page de statistiques
 - Administration des utilisateurs (création, modification, activation, réinitialisation du mot de passe)
-- Réglages globaux (langue, fuseau horaire, couleurs, SLA) et préférences par utilisateur
+- Réglages globaux (fuseau horaire, couleurs, SLA, numérotation des tickets)
+- Page « Mon compte » pour chaque utilisateur : profil, changement de mot de passe, page d'accueil, tickets par page, fuseau horaire, couleur d'accent
 
 ## Technologies
 
@@ -90,5 +91,6 @@ php artisan test
 - la connexion (redirections, identifiants erronés, compte désactivé, limitation des tentatives) ;
 - l'accès aux tickets et aux pièces jointes selon le rôle ;
 - la gestion des comptes par les administrateurs ;
+- la page « Mon compte » (préférences appliquées, changement de mot de passe) ;
 - l'installation de la base (migrations, clés étrangères, données de démonstration) et le démarrage sans base ;
 - le nombre de requêtes du tableau de bord.

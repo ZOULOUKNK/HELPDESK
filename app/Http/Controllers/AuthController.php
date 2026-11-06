@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\User\UserPreferenceController;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -67,7 +68,7 @@ class AuthController extends Controller
                 'last_login_at' => now(),
             ]);
 
-            return redirect()->intended(route('dashboard'));
+            return redirect()->intended(route(UserPreferenceController::homeRouteFor(Auth::user())));
         }
 
         return back()
