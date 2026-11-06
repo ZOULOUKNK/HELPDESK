@@ -7,7 +7,7 @@
 
     <div class="flex items-center justify-between">
         <div>
-            <h2 class="text-xl font-semibold text-slate-900">Bonjour, {{ Auth::user()->name }} </h2>
+            <h2 class="text-xl font-semibold text-slate-900">Bonjour,{{ Auth::user()->name }} </h2>
             <p class="text-sm text-slate-500 mt-0.5">{{ now()->translatedFormat('l d F Y') }}</p>
         </div>
         <a href="{{ route('tickets.create') }}" class="btn-primary">
@@ -135,8 +135,10 @@
                     <p class="text-sm font-medium text-slate-900 truncate">{{ $ticket->title }}</p>
                     @if(Auth::user()->isAgent())
                     <p class="text-xs text-slate-400 mt-0.5">
-                        Par {{ $ticket->user->name }}
-                        @if($ticket->agent) · Assigné à {{ $ticket->agent->name }}@endif
+                        Par {{ optional($ticket->assignedUser)->name ?? 'Non assigné' }}
+                        @if($ticket->agent)
+                        Assigné à {{ $ticket->agent?->name ?? 'Non assigné' }}
+                        @endif
                     </p>
                     @endif
                 </div>
