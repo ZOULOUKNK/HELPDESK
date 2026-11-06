@@ -153,6 +153,8 @@ class UserController extends Controller
     */
     public function edit(User $user)
     {
+        $this->ensureCanManage($user);
+
         $ticketStats = [
             'total' => $user->tickets()->count(),
 
@@ -183,20 +185,36 @@ class UserController extends Controller
     */
     public function update(Request $request, User $user)
     {
+        $this->ensureCanManage($user);
+
+        $isSelf = $user->id === auth()->id();
+
+        /*
+        | Le rôle super_admin n'est jamais attribuable depuis ce formulaire,
+        | mais il doit rester valide pour le compte qui le possède déjà.
+        */
+        $allowedRoles = [User::ROLE_CLIENT, User::ROLE_AGENT, User::ROLE_ADMIN];
+        if ($user->isSuperAdmin()) {
+            $allowedRoles[] = User::ROLE_SUPER_ADMIN;
+        }
+
         $validated = $request->validate([
             'name'       => ['required', 'string', 'max:255'],
             'email'      => ['required', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
-            'role'       => ['required', Rule::in([
-                User::ROLE_CLIENT,
-                User::ROLE_AGENT,
-                User::ROLE_ADMIN,
-            ])],
+            'role'       => ['required', Rule::in($allowedRoles)],
             'department' => ['nullable', 'string', 'max:100'],
             'phone'      => ['nullable', 'string', 'max:20'],
             'bio'        => ['nullable', 'string', 'max:500'],
             'is_active'  => ['nullable', 'boolean'],
             'password'   => ['nullable', 'confirmed', 'min:8'],
         ]);
+
+        /*
+        | Personne ne change son propre rôle ni ne désactive son propre
+        | compte (le formulaire le masque, le serveur l'impose).
+        */
+        $newRole = $isSelf ? $user->role : $validated['role'];
+        $newActive = $isSelf ? true : $request->boolean('is_active');
 
         /*
         |--------------------------------------------------------------------------
@@ -207,13 +225,9 @@ class UserController extends Controller
         if (
             $user->isAdmin()
             && $user->is_active
-            && ($validated['role'] !== User::ROLE_ADMIN || !$request->boolean('is_active'))
+            && (!in_array($newRole, [User::ROLE_ADMIN, User::ROLE_SUPER_ADMIN], true) || !$newActive)
         ) {
-            $activeAdmins = User::where('role', User::ROLE_ADMIN)
-                ->where('is_active', true)
-                ->count();
-
-            if ($activeAdmins <= 1) {
+            if ($this->activeAdminCount() <= 1) {
                 return back()
                     ->withInput()
                     ->withErrors([
@@ -225,7 +239,7 @@ class UserController extends Controller
         $data = [
             'name'       => $validated['name'],
             'email'      => $validated['email'],
-            'role'       => $validated['role'],
+            'role'       => $newRole,
             'department' => $validated['department'] ?? null,
             'phone'      => $validated['phone'] ?? null,
             'bio'        => $validated['bio'] ?? null,
@@ -234,7 +248,7 @@ class UserController extends Controller
             | Sans case cochée, boolean() retourne false.
             | Le comportement est volontaire ici pour permettre la désactivation.
             */
-            'is_active'  => $request->boolean('is_active'),
+            'is_active'  => $newActive,
         ];
 
         /*
@@ -261,15 +275,19 @@ class UserController extends Controller
     */
     public function toggleActive(User $user)
     {
+        $this->ensureCanManage($user);
+
+        if ($user->id === auth()->id()) {
+            return back()->withErrors([
+                'error' => 'Vous ne pouvez pas désactiver votre propre compte.',
+            ]);
+        }
+
         /*
         | Empêcher la désactivation du dernier admin actif.
         */
         if ($user->isAdmin() && $user->is_active) {
-            $activeAdmins = User::where('role', User::ROLE_ADMIN)
-                ->where('is_active', true)
-                ->count();
-
-            if ($activeAdmins <= 1) {
+            if ($this->activeAdminCount() <= 1) {
                 return back()->withErrors([
                     'error' => 'Impossible de désactiver le dernier administrateur actif.',
                 ]);
@@ -293,6 +311,8 @@ class UserController extends Controller
     */
     public function resetPassword(Request $request, User $user)
     {
+        $this->ensureCanManage($user);
+
         $request->validate([
             'password' => ['required', 'confirmed', 'min:8'],
         ]);
@@ -314,6 +334,8 @@ class UserController extends Controller
     */
     public function destroy(User $user)
     {
+        $this->ensureCanManage($user);
+
         /*
         | Un administrateur ne doit pas pouvoir supprimer son propre compte
         | depuis l'interface d'administration.
@@ -329,7 +351,7 @@ class UserController extends Controller
         | Ici on compte tous les admins car la suppression retire totalement le compte.
         */
         if ($user->isAdmin()) {
-            $adminCount = User::where('role', User::ROLE_ADMIN)->count();
+            $adminCount = User::whereIn('role', [User::ROLE_ADMIN, User::ROLE_SUPER_ADMIN])->count();
 
             if ($adminCount <= 1) {
                 return back()->withErrors([
@@ -344,5 +366,30 @@ class UserController extends Controller
         return redirect()
             ->route('admin.users.index')
             ->with('success', "Utilisateur {$name} supprimé.");
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Protection du super administrateur
+    |--------------------------------------------------------------------------
+    | Un administrateur ordinaire ne doit ni modifier, ni désactiver, ni
+    | supprimer, ni réinitialiser le mot de passe d'un super administrateur :
+    | sinon il pourrait prendre le contrôle de ce compte.
+    */
+    private function ensureCanManage(User $target): void
+    {
+        if ($target->isSuperAdmin() && !auth()->user()->isSuperAdmin()) {
+            abort(403, 'Seul un super administrateur peut gérer ce compte.');
+        }
+    }
+
+    /*
+    | Administrateurs actifs, super administrateurs compris.
+    */
+    private function activeAdminCount(): int
+    {
+        return User::whereIn('role', [User::ROLE_ADMIN, User::ROLE_SUPER_ADMIN])
+            ->where('is_active', true)
+            ->count();
     }
 }
