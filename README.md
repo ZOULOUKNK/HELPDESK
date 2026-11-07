@@ -37,7 +37,7 @@ php artisan serve
 
 Ouvrir ensuite http://127.0.0.1:8000.
 
-`migrate --seed` crée les comptes de démonstration et environ 200 tickets d'exemple.
+`migrate --seed` remplit la base avec des données d'exemple (environ 200 tickets).
 
 ### Utiliser MySQL
 
@@ -53,17 +53,6 @@ DB_PASSWORD=
 ```
 
 Créer la base `helpdesk`, puis lancer `php artisan migrate --seed`.
-
-## Comptes de démonstration
-
-Mot de passe de tous les comptes : `password`. **À changer avant toute mise en ligne.**
-
-| Rôle | E-mail |
-|---|---|
-| Super-administrateur | superadmin@helpdesk.fr |
-| Administrateur | admin@helpdesk.fr |
-| Agents | thomas@helpdesk.fr, sophie@helpdesk.fr, lucas@helpdesk.fr |
-| Clients | claire@helpdesk.fr, julien@helpdesk.fr, emma@helpdesk.fr, nicolas@helpdesk.fr, laura@helpdesk.fr |
 
 ## Commandes utiles
 
